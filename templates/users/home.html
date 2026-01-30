@@ -1,0 +1,340 @@
+{% extends "users/base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<style>
+    .small-mark {
+        background-color: yellow; /* 或其他你喜欢的颜色 */
+        padding: 0.0005em 0.3em; /* 上下0.1em，左右0.3em */
+        border-radius: 2px; /* 可选：添加轻微圆角 */
+    }
+</style>
+
+<div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body" >
+                <h2 class="card-title">Welcome, {{ user.username }}!</h2>
+                <p style="font-size: 1.2em;">This system focuses on spatiotemporal data training, prediction and analysis, with 8 training parameters available for adjustment. For detailed information about parameters and evaluation metrics, please click the <i class="mdi mdi-help-circle-outline menu-icon"></i> button in the top right corner to read the documentation.</p>
+                <p >Here are introductions to each interface:</p>
+                <ul>
+                    <li style="font-size: 1.2em; margin-bottom: 13px;"><i class="mdi mdi-folder-multiple menu-icon"></i><strong>Personal Projects</strong>: Create or access different projects, each storing its own data and models.</li>
+                    <li style="font-size: 1.2em; margin-bottom: 13px;"><i class="fa fa-desktop menu-icon"></i><strong>Training Dashboard</strong>: Visualized training interface that displays training data and results for intuitive training, and provides parameter adjustment suggestions to meet the needs of beginners.</li>
+                    <li style="font-size: 1.2em; margin-bottom: 13px;"><i class="mdi mdi-chart-bar menu-icon"></i><strong>Data Prediction</strong>: Select files to be predicted and choose trained models for prediction.</li>
+                    <li style="font-size: 1.2em; margin-bottom: 13px;"><i class="mdi mdi-database menu-icon"></i><strong>Storage Management</strong>:
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Data Management</strong>: Upload local data for training with various operations. Data obtained from other interfaces such as predictions is also stored here.</li>
+                            <li style="font-size: 1.2em;"><strong>Model Management</strong>: Upload local models for prediction. Trained models are also stored here.</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p style="font-size: 1.2em;">The main target audience of this system are <span class="small-mark">beginners with limited understanding of deep learning principles</span>; <span class="small-mark">people who want to conveniently obtain trained models or prediction results</span>.</p>
+                <p style="font-size: 1.2em;">For different needs, this system suggests two usage approaches. Below are the workflow diagrams.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 grid-margin stretch-card">  <!-- Changed to col-md-6 -->
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Workflow One</h2>
+                <div id="myDiagramDiv1" class="border" style="width:100%; height:400px;"></div>
+                <p class="text-center" style="font-size: 1em;">Visualize and intuitively experience training, train models and results according to requirements</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 grid-margin stretch-card">  <!-- Changed to col-md-6 -->
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Workflow Two</h2>
+                <div id="myDiagramDiv2" class="border" style="width:100%; height:400px;"></div>
+                <p class="text-center" style="font-size: 1em;">Suitable for people wanting direct results, fewer operations, more convenient</p>
+            </div>
+        </div>
+    </div>
+    <!-- <div class="col-md-4 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Workflow Three</h2>
+                <div id="myDiagramDiv3" class="border" style="width:100%; height:400px;"></div>
+                <p class="text-center" style="font-size: 1em;">Quantitative comparison of results, advantage: comparing and finding required training models</p>
+            </div>
+        </div>
+    </div> -->
+</div>
+
+<script type="module" src="{% static 'js/go-module.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const $ = go.GraphObject.make;
+
+    // 创建两个 Diagram 实例，分别对应两个流程图
+    const myDiagram1 = $(go.Diagram, "myDiagramDiv1",
+        {
+            "undoManager.isEnabled": true,
+            "layout": $(go.LayeredDigraphLayout, { direction: 90, layerSpacing: 10 }), 
+            "initialContentAlignment": go.Spot.Center, 
+        });
+
+    const myDiagram2 = $(go.Diagram, "myDiagramDiv2",
+        {
+            "undoManager.isEnabled": true,
+            "layout": $(go.LayeredDigraphLayout, { direction: 90, layerSpacing: 10 }), 
+            "initialContentAlignment": go.Spot.Center 
+        });
+
+    // 定义节点模板
+    const nodeTemplate = $(go.Node, "Auto",
+        $(go.Shape, "RoundedRectangle", { fill: "lightblue" },
+            new go.Binding("fill", "color")),
+        $(go.TextBlock,
+            { margin: 8, stroke: "white" },  
+            new go.Binding("text", "key"))
+    );
+
+    // 定义链接模板
+    const linkTemplate = $(go.Link, go.Link.Orthogonal,
+        $(go.Shape, { stroke: "black" }),
+        $(go.Shape, { toArrow: "Standard", stroke: null, fill: "black" })
+    );
+
+    // 定义流程一的节点和链接
+    // Define nodes and links for process one
+    const nodeDataArray1 = [
+        { key: "Create or enter project in Personal Projects", color: "#51B1E1" },
+        { key: "Upload data in Storage Management", color: "#51B1E1" },
+        { key: "Train in Training Dashboard", color: "#1F3BB3" },
+        { key: "Save Model", color: "#34B1AA" },
+        { key: "Data Prediction", color: "#F95F53" }
+    ];
+
+    const linkDataArray1 = [
+        { from: "Create or enter project in Personal Projects", to: "Upload data in Storage Management" },
+        { from: "Upload data in Storage Management", to: "Train in Training Dashboard" },
+        { from: "Train in Training Dashboard", to: "Save Model" },
+        { from: "Save Model", to: "Data Prediction" }
+    ];
+
+    // Define nodes and links for process two
+    const nodeDataArray2 = [
+        { key: "Create or enter project in Personal Projects", color: "#51B1E1" },
+        { key: "Upload data in Storage Management", color: "#51B1E1" },
+        { key: "Get best model parameters through hyperparameter tuning", color: "#E29E09" },
+        { key: "Save Model", color: "#34B1AA" },
+        { key: "Data Prediction", color: "#F95F53" }
+    ];
+
+    const linkDataArray2 = [
+        { from: "Create or enter project in Personal Projects", to: "Upload data in Storage Management" },
+        { from: "Upload data in Storage Management", to: "Get best model parameters through hyperparameter tuning" },
+        { from: "Get best model parameters through hyperparameter tuning", to: "Save Model" },
+        { from: "Save Model", to: "Data Prediction" }
+    ];
+
+    // 设置每个 Diagram 的模板和数据
+    myDiagram1.nodeTemplate = nodeTemplate;
+    myDiagram1.linkTemplate = linkTemplate;
+    myDiagram1.model = new go.GraphLinksModel(nodeDataArray1, linkDataArray1);
+
+    myDiagram2.nodeTemplate = nodeTemplate;
+    myDiagram2.linkTemplate = linkTemplate;
+    myDiagram2.model = new go.GraphLinksModel(nodeDataArray2, linkDataArray2);
+});
+</script>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="helpModalLabel">Help Documentation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h4 style="font-size: 1.2em;">Spatiotemporal Perception Related Parameters</h4>
+                <p>These parameters mainly affect the model's ability to process time series data and geospatial data.</p>
+                <ul>
+                    <li style="font-size: 1.2em;"><strong>Temporal Kernel Size</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> The size of the temporal convolution kernel, used to extract temporal features.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Larger kernels can capture features over longer time windows, while smaller kernels focus on local temporal changes.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When time series data has obvious periodicity or long-term dependencies, larger kernels can be selected; when focusing on short-term changes, smaller kernels should be chosen.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>LSTM Units</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of units in the LSTM layer.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Controls the complexity of the LSTM layer; more units can better capture long-term dependencies in time series.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When time series data is complex or has long temporal dependencies, LSTM unit numbers can be increased.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>Spatial Kernel Sizes</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> The size of spatial convolution kernels, used to extract geographical features.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Determines the ability to capture features in the spatial dimension; larger kernels can capture features over a larger spatial range.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When geographical feature distributions are wide or have large spatial correlations, larger kernels can be selected.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>Filters</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of filters in the convolutional layer.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Determines the number of features that the convolutional layer can extract; more filters can capture more complex local patterns.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When input feature dimensions are high or there are complex local correlations between features, filter numbers can be increased.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4 style="font-size: 1.2em;">Attention Mechanism and Fully Connected Layer Related Parameters</h4>
+                <p>These parameters control the behavior of the attention mechanism in the model, affecting the model's high-level feature fusion and output capabilities.</p>
+                <ul>
+                    <li style="font-size: 1.2em;"><strong>Dynamic Attention Units</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of neurons in the dynamic attention mechanism.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> More dynamic attention units can better adapt to the importance of different time steps, improving model flexibility.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When certain time step information in time series data is more important, the number of dynamic attention units can be increased.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>Dense Units</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of neurons in the fully connected layer (Dense Layer).</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Affects the model's expressive power; more neurons can capture more complex nonlinear relationships.</li>
+                            <li style="font-size: 1.2em;"><strong>Use Cases:</strong> When nonlinear relationships between features are strong, Dense unit numbers can be appropriately increased.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4 style="font-size: 1.2em;">Training Related Parameters</h4>
+                <ul>
+                    <li style="font-size: 1.2em;"><strong>Epochs</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of training rounds, i.e., the number of times the model iterates over the entire training set.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> More training rounds can improve model convergence, but may also lead to overfitting.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>Batch Size</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Description:</strong> Number of samples used each time model parameters are updated.</li>
+                            <li style="font-size: 1.2em;"><strong>Impact:</strong> Smaller batch sizes can provide more frequent parameter updates but may cause training instability; larger batch sizes can provide more stable gradient estimation but require more memory.</li>
+                        </ul>
+                    </li>
+                </ul>
+                <br/>
+                <h4 style="font-size: 1.2em;">Evaluation Metrics</h4>
+                <ul>
+                    <li style="font-size: 1.2em;"><strong>RMSE (Root Mean Square Error)</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Purpose:</strong> RMSE is the square root of the average of squared differences between predicted and actual values. It measures the average error magnitude between model predictions and true values.</li>
+                            <li style="font-size: 1.2em;"><strong>Significance:</strong> The smaller the RMSE, the higher the model's prediction accuracy. RMSE is sensitive to larger errors because it squares the errors.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>MAE (Mean Absolute Error)</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Purpose:</strong> MAE is the average of absolute differences between predicted and actual values.</li>
+                            <li style="font-size: 1.2em;"><strong>Significance:</strong> MAE also measures model prediction accuracy, but unlike RMSE, MAE is not sensitive to error magnitude since it only considers absolute errors. Therefore, MAE is more robust and less affected by outliers.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>R² (Coefficient of Determination)</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Purpose:</strong> R² measures the proportion of data variability explained by the model. It indicates the correlation between model predictions and actual values.</li>
+                            <li style="font-size: 1.2em;"><strong>Significance:</strong> R² ranges from 0 to 1, with values closer to 1 indicating better model fit. An R² value of 0 means the model cannot explain any data variance.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>Adj R² (Adjusted Coefficient of Determination)</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Purpose:</strong> Adj R² adjusts R² by considering the number of independent variables in the model. It corrects the automatic increase in R² due to adding independent variables.</li>
+                            <li style="font-size: 1.2em;"><strong>Significance:</strong> Adj R² also ranges from 0 to 1, but unlike R², it penalizes unnecessary independent variables in the model. Therefore, Adj R² is more suitable for model selection and comparison.</li>
+                        </ul>
+                    </li>
+                    <li style="font-size: 1.2em;"><strong>NSE (Nash-Sutcliffe Efficiency)</strong>
+                        <ul>
+                            <li style="font-size: 1.2em;"><strong>Purpose:</strong> NSE is an indicator used to evaluate hydrological model performance, measuring the similarity between model predictions and actual values.</li>
+                            <li style="font-size: 1.2em;"><strong>Significance:</strong> NSE ranges from negative infinity to 1, with values closer to 1 indicating better model prediction performance. An NSE value of 0 means model predictions equal the mean value, and values less than 0 indicate model performance worse than the mean.</li>
+                        </ul>
+                    </li>
+                    
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

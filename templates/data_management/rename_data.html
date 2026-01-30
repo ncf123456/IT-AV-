@@ -1,0 +1,24 @@
+<!-- templates/data_management/rename_data.html -->
+{% extends 'users/base.html' %}
+{% block title %}重命名数据文件 - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">重命名数据文件: {{ data_file.filename }}</h4>
+                <form method="post" action="{% url 'rename_data' project.id data_file.filename %}" id="renameForm_{{ project.id }}_{{ data_file.id }}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_filename">新文件名</label>
+                        <input type="text" class="form-control" id="id_filename" name="filename" value="{{ data_file.filename }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <a href="{% url 'manage_data' project.id %}" class="btn btn-secondary">取消</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

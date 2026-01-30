@@ -1,0 +1,479 @@
+{% extends 'users/base.html' %}
+{% block title %}数据训练 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Data Training - {{ project.name }}</h4>
+                <!-- Hidden input to store project_id -->
+                <input type="hidden" id="projectIdInput" value="{{ project.id }}">
+                
+                <form method="post" id="trainingForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="dataFileSelect">Select Training File</label>
+                        <select class="form-control" id="dataFileSelect" name="data_file">
+                            <option value="">Please select a file</option>
+                            {% for data_file in data_files %}
+                            <option value="{{ data_file.filename }}">{{ data_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="methodSelect">Select Training Method</label>
+                        <select class="form-control" id="methodSelect" name="method" onchange="updateMethod()">
+                            <option value="spatio_temporal">Spatio-Temporal Multi-Attention Network</option>
+                            <option value="traditional">Traditional CNN+LSTM+Attention</option>
+                        </select>
+                    </div>
+                    <div id="featureColumns" style="display:none;">
+                        <h5>Feature Column Selection</h5>
+                        <!-- Feature columns will be dynamically added here -->
+                    </div>
+                    <div class="form-group">
+                        <label for="testSizeRatio">Training and Test Set Ratio</label>
+                        <input type="number" step="0.01" min="0.01" max="0.99" class="form-control" id="testSizeRatio" name="test_size_ratio" value="0.2">
+                    </div>
+                    <div id="parameters_spatio_temporal" style="display:block;">
+                        <h5>Parameter Selection (Spatio-Temporal Multi-Attention Network)</h5>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <label for="st_lstm_units">LSTM Units</label>
+                                <input type="number" class="form-control" id="st_lstm_units" name="st_lstm_units" value="50">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_dense_units">Dense Units</label>
+                                <input type="number" class="form-control" id="st_dense_units" name="st_dense_units" value="50">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_filters">Filters</label>
+                                <input type="number" class="form-control" id="st_filters" name="st_filters" value="64">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="st_temporal_kernel_size">Temporal Kernel Size</label>
+                                <input type="number" class="form-control" id="st_temporal_kernel_size" name="st_temporal_kernel_size" value="3">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_spatial_kernel_sizes">Spatial Kernel Sizes</label>
+                                <input type="text" class="form-control" id="st_spatial_kernel_sizes" name="st_spatial_kernel_sizes" value="3,3">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_dynamic_attention_units">Dynamic Attention Units</label>
+                                <input type="number" class="form-control" id="st_dynamic_attention_units" name="st_dynamic_attention_units" value="50">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="st_epochs">Epochs</label>
+                                <input type="number" class="form-control" id="st_epochs" name="st_epochs" value="10">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_batch_size">Batch Size</label>
+                                <input type="number" class="form-control" id="st_batch_size" name="st_batch_size" value="32">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="parameters_traditional" style="display:none;">
+                        <h5>Parameter Selection (Traditional CNN+LSTM+Attention)</h5>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <label for="t_filters">Filters</label>
+                                <input type="number" class="form-control" id="t_filters" name="t_filters" value="64">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_kernel_size">Kernel Size</label>
+                                <input type="number" class="form-control" id="t_kernel_size" name="t_kernel_size" value="3">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_lstm_units">LSTM Units</label>
+                                <input type="number" class="form-control" id="t_lstm_units" name="t_lstm_units" value="50">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="t_dense_units">Dense Units</label>
+                                <input type="number" class="form-control" id="t_dense_units" name="t_dense_units" value="50">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_dynamic_attention_units">Dynamic Attention Units</label>
+                                <input type="number" class="form-control" id="t_dynamic_attention_units" name="t_dynamic_attention_units" value="50">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="t_epochs">Epochs</label>
+                                <input type="number" class="form-control" id="t_epochs" name="t_epochs" value="10">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_batch_size">Batch Size</label>
+                                <input type="number" class="form-control" id="t_batch_size" name="t_batch_size" value="32">
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="trainingProgress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="trainButton" disabled onclick="startTraining()">Train</button>
+                    <button type="button" class="btn btn-success ml-2" id="saveButton" disabled onclick="saveModel()">Save</button>
+                    <button type="button" class="btn btn-info ml-2" id="visualizeButton" disabled onclick="visualizeResults()">Visualize Training Results</button>
+                </form>
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+    
+    let trainingInterval; // Define trainingInterval here
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const projectId = getProjectId(); // Ensure this function returns the correct project ID
+        const socket = new WebSocket(`ws://${window.location.host}/ws/training_progress/${projectId}/`);
+    
+        socket.onopen = function(event) {
+            console.log("Connected to WebSocket");
+        };
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const progress = data.progress;
+            const progressBar = document.getElementById('trainingProgress');
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+            }
+            if (progress >= 100) {
+                clearInterval(trainingInterval); // Ensure trainingInterval is defined
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('visualizeButton').disabled = false;
+                console.log("Training completed.");
+            }
+        };
+    
+        socket.onclose = function(event) {
+            console.log("Disconnected from WebSocket");
+        };
+    });
+    
+    function startTraining() {
+        console.log("Starting training...");
+        const progressBar = document.getElementById('trainingProgress');
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+    
+        const formData = new FormData(document.getElementById('trainingForm'));
+        const projectId = getProjectId();
+    
+        fetch(`/data/data_training/${projectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+        .then(response => {
+            console.log("Response received:", response);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Data from server:", data);
+            if (data.status === 'success') {
+                clearInterval(trainingInterval);
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('visualizeButton').disabled = false;
+                console.log("Training completed.");
+    
+                // 检查早停触发的轮次
+                if (data.triggered_epoch !== -1 && data.triggered_epoch !== null) {
+                    alert(`Early stopping was triggered at epoch ${data.triggered_epoch}`);
+                }
+            } else {
+                showErrorMessage(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error starting training:', error);
+            showErrorMessage('发生错误，请检查控制台以获取更多信息。');
+        });
+    
+        // Connect to WebSocket
+        const socket = new WebSocket(`ws://${window.location.host}/ws/training_progress/${projectId}/`);
+    
+        socket.onopen = function(event) {
+            console.log("Connected to WebSocket");
+        };
+    
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const progress = data.progress;
+            const progressBar = document.getElementById('trainingProgress');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = progress + '%';
+            if (progress >= 100) {
+                clearInterval(trainingInterval);
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('visualizeButton').disabled = false;
+                console.log("Training completed.");
+            }
+        };
+    
+        socket.onclose = function(event) {
+            console.log("Disconnected from WebSocket");
+        };
+    }
+    
+    document.getElementById('dataFileSelect').addEventListener('change', function() {
+        const selectedFile = this.value;
+        if (selectedFile) {
+            const projectId = getProjectId();
+            fetch(`/data/get_columns/${projectId}/${encodeURIComponent(selectedFile)}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    populateFeatureColumns(data.columns);
+                    document.getElementById('trainButton').disabled = false; // Enable train button after successful fetch
+                    clearErrorMessage(); // Clear any previous error messages
+                })
+                .catch(error => {
+                    console.error('Error fetching columns:', error);
+                    showErrorMessage('无法获取列信息，请检查控制台以获取更多信息。');
+                    document.getElementById('trainButton').disabled = true; // Disable train button on failure
+                    hideAllFeatureSections(); // Hide all feature sections on failure
+                });
+        } else {
+            hideAllFeatureSections();
+            document.getElementById('trainButton').disabled = true; // Disable train button when no file is selected
+            clearErrorMessage(); // Clear any previous error messages
+        }
+    });
+    
+    function updateMethod() {
+        const method = document.getElementById('methodSelect').value;
+        if (method === 'spatio_temporal') {
+            document.getElementById('parameters_spatio_temporal').style.display = 'block';
+            document.getElementById('parameters_traditional').style.display = 'none';
+        } else if (method === 'traditional') {
+            document.getElementById('parameters_spatio_temporal').style.display = 'none';
+            document.getElementById('parameters_traditional').style.display = 'block';
+        }
+    
+        // Adjust feature selection options based on the method
+        const featureSelectElements = document.querySelectorAll('#featureColumns select[name^="features["]');
+        featureSelectElements.forEach(selectElement => {
+            if (method === 'traditional') {
+                // Only keep "other_feature", "standard_date_feature", and "target_variable"
+                Array.from(selectElement.options).forEach(option => {
+                    if (!['other_feature', 'standard_date_feature', 'target_variable'].includes(option.value)) {
+                        option.disabled = true;
+                        option.hidden = true;
+                    } else {
+                        option.disabled = false;
+                        option.hidden = false;
+                    }
+                });
+            } else {
+                // Enable all options for spatio_temporal
+                Array.from(selectElement.options).forEach(option => {
+                    option.disabled = false;
+                    option.hidden = false;
+                });
+            }
+        });
+    }
+    
+    function populateFeatureColumns(columns) {
+        const featureColumnsDiv = document.getElementById('featureColumns');
+        featureColumnsDiv.innerHTML = '<h5>特征列选择</h5>';
+        columns.forEach(column => {
+            featureColumnsDiv.innerHTML += `
+                <div class="form-group row">
+                    <label for="${column}" class="col-sm-3 col-form-label">${column}</label>
+                    <div class="col-sm-9">
+                        <select class="form-control" id="${column}" name="features[${column}]">
+                            <option value="other_feature">其他特征</option>
+                            <option value="time_feature">时间特征</option>
+                            <option value="standard_date_feature">标准日期特征</option>
+                            <option value="geographic_feature">地理特征</option>
+                            <option value="target_variable">目标变量</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        });
+        featureColumnsDiv.style.display = '';
+    }
+    
+    function hideAllFeatureSections() {
+        document.getElementById('featureColumns').style.display = 'none';
+    }
+    
+    function saveModel() {
+        console.log("Saving model...");
+        const projectId = getProjectId();
+        const formData = new FormData(document.getElementById('trainingForm'));
+    
+        // 弹出输入框让用户输入模型名称
+        const modelName = prompt("请输入模型名称:");
+        if (modelName) {
+            formData.append('model_name', modelName);
+    
+            fetch(`/data/save_model/${projectId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                },
+                body: formData,
+            })
+            .then(response => {
+                console.log("Response received:", response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Data from server:", data);
+                if (data.status === 'success') {
+                    alert(data.message);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving model:', error);
+                alert('An error occurred. Please check the console for more information.');
+            });
+        } else {
+            alert('The model name cannot be empty');
+        }
+    }
+    
+    function visualizeResults() {
+        console.log("Visualizing results...");
+        const projectId = getProjectId();
+        window.location.href = `/data/visualization_results/${projectId}/`;
+    }
+    
+    function showErrorMessage(message) {
+        const errorMessageDiv = document.getElementById('errorMessage');
+        errorMessageDiv.textContent = message;
+        errorMessageDiv.style.display = 'block';
+    }
+    
+    function clearErrorMessage() {
+        const errorMessageDiv = document.getElementById('errorMessage');
+        errorMessageDiv.textContent = '';
+        errorMessageDiv.style.display = 'none';
+    }
+    
+    function getProjectId() {
+        return document.getElementById('projectIdInput').value;
+    }
+    </script>
+{% endblock %}
+
+
+

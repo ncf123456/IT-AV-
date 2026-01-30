@@ -1,0 +1,111 @@
+<!-- templates/data_management/preview_data.html -->
+{% extends 'users/base.html' %}
+{% block title %}预览数据 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Preview data - {{ project.name }}</h4>
+                <p>文件名: {{ data_file.filename }}</p>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                {% for heading in preview_table_headings %}
+                                    <th>{{ heading }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_table_rows %}
+                                <tr>
+                                    {% for cell in row %}
+                                        <td>{{ cell }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{% url 'manage_data' project.id %}" class="btn btn-secondary mt-3">Return</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

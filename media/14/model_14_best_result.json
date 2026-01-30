@@ -1,0 +1,1 @@
+{"best_params": {"filters": 128, "kernel_size": 2, "lstm_units": 256, "dense_units": 3, "dynamic_attention_units": 193}, "epochs": 75, "batch_size": 16, "rmse": [2.0781540666829854], "mae": [1.4799691222328175], "r2": [0.9853458026998155], "adj_r2": [0.9850314387313297], "nse": [0.9853458026998155], "training_time": 755.834524, "score": 1.2558857297335626}

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}我的项目{% endblock %}</title>
+    <!-- 加载 static 标签库 -->
+    {% load static %}
+    <!-- plugins:css -->
+    <link rel="stylesheet" href="{% static 'vendors/feather/feather.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/mdi/css/materialdesignicons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/ti-icons/css/themify-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/font-awesome/css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/typicons/typicons.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/simple-line-icons/css/simple-line-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/css/vendor.bundle.base.css' %}">
+    <!-- End plugin css for this page -->
+    <!-- inject:css -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- endinject -->
+    <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" />
+    <style>
+        .nav-item.active a {
+            background-color: white;
+            color: black; /* 确保文字颜色可见 */
+        }
+        .nav-item:hover a {
+            background-color: #f8f9fa;
+            color: black; /* 确保文字颜色可见 */
+        }
+        .form-group input[type="text"],
+        .form-group select,
+        .form-group input[type="number"] {
+            width: 50%; /* 缩短至一半 */
+        }
+        .form-group textarea {
+            width: 100%; /* 保持原长宽 */
+            height: 100px; /* 保持原高度 */
+        }
+        .form-group label {
+            display: flex;
+            align-items: center; /* 垂直居中对齐 */
+        }
+        .welcome-text {
+            font-weight: bold;
+        }
+        .welcome-sub-text {
+            color: #6c757d;
+        }
+    </style>
+<!-- 引入 jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<!-- 引入 Popper.js（Bootstrap 4 需要） -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" integrity="sha384-eMNCOe7tC1doHpGoWe/6oMVemdAVTMs2xqW4mwXrXsW0L84Iytr2wi5v2QjrP/xp" crossorigin="anonymous"></script> -->
+<!-- 引入 Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- 引入 Chart.js -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script> -->
+<script src="{% static 'js/chart.min.js' %}"></script>
+<!-- 引入 roundedBarCharts.js -->
+<script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
+<!-- 引入 jQuery.cookie -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+<!-- plugins:js -->
+<script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
+<!-- endinject -->
+<!-- Plugin js for this page -->
+<script src="{% static 'vendors/progressbar.js/progressbar.min.js' %}"></script>
+<script src="{% static 'vendors/bootstrap-datepicker/bootstrap-datepicker.min.js' %}"></script>
+<!-- Custom js for this page-->
+<script src="{% static 'js/off-canvas.js' %}"></script>
+<script src="{% static 'js/hoverable-collapse.js' %}"></script>
+<script src="{% static 'js/template.js' %}"></script>
+<script src="{% static 'js/settings.js' %}"></script>
+<script src="{% static 'js/todolist.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+<!-- <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.1/echarts.min.js"></script> -->
+<script src="{% static 'js/echarts.min.js' %}" async></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/plotly.js@latest/dist/plotly.min.js"></script> -->
+
+</head>
+<body class="with-welcome-text">
+    <div class="container-scroller">
+        <div class="row p-0 m-0 proBanner" id="proBanner">
+            <div class="col-md-12">
+                <span class="d-flex align-items-center justify-content-between">
+                    <span class="d-flex">
+                        <i class="mdi mdi-home mr-3 text-white"></i>
+                        <span class="text-white font-weight-medium">Welcome to my project</span>
+                    </span>
+                    <span class="d-flex align-items-center flex-shrink-0">
+                        <i class="mdi mdi-file-check mr-2 text-white"></i>
+                        <small class="text-white mb-0"></small>
+                    </span>
+                </span>
+            </div>
+        </div>
+        <!-- partial:partials/_navbar.html -->
+        <nav class="navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
+            <div class="navbar-menu-wrapper d-flex align-items-center justify-content-between w-100">
+                <a class="navbar-brand" href="{% url 'home' %}">My project</a>
+                <ul class="navbar-nav navbar-nav-right">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_profile' %}">
+                            <i class="mdi mdi-account-circle menu-icon"></i>
+                            Personal Information
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-toggle="modal" data-target="#helpModal">
+                            <i class="mdi mdi-help-circle-outline menu-icon"></i>
+                            Help
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="mdi mdi-logout menu-icon"></i>
+                            Log out
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register' %}">
+                            <i class="mdi mdi-account-plus menu-icon"></i>
+                            Register
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="mdi mdi-login menu-icon"></i>
+                            Login
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="navbar-collapse collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item d-flex align-items-center">
+                        <h1 class="welcome-text mx-3">Good Morning, <span class="text-black fw-bold">{{ user.username }}</span></h1>
+                        <h3 class="welcome-sub-text mx-3">您的本周表现总结</h3>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <!-- partial -->
+        <div class="container-fluid page-body-wrapper">
+            <!-- partial:partials/_sidebar.html -->
+            <nav class="sidebar sidebar-offcanvas" id="sidebar">
+                <ul class="nav">
+                    {% block project_nav %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/personal_projects/' %}active{% endif %}" href="{% url 'personal_projects' %}">
+                            <i class="ti-home menu-icon"></i>
+                            <span class="menu-title">个人项目</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/project_square/' %}active{% endif %}" href="{% url 'project_square' %}">
+                            <i class="ti-palette menu-icon"></i>
+                            <span class="menu-title">项目广场</span>
+                        </a>
+                    </li>
+                    {% endblock %}
+                </ul>
+            </nav>
+            <!-- partial -->
+            <div class="main-panel">
+                <div class="content-wrapper">
+                    <div class="row">
+                        <div class="col-md-12 grid-margin">
+                            <div class="row">
+                                <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                                    <!-- 其他内容 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+        <!-- page-body-wrapper ends -->
+    </div>
+    <!-- container-scroller -->
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel">Help Documentation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h4>System Features</h4>
+                    <p>This system allows you to manage personal projects and browse projects from other users. Here are the main features:</p>
+                    <ul>
+                        <li><strong>Personal Projects:</strong> Create, edit and manage your projects.</li>
+                        <li><strong>Project Square:</strong> Browse and collaborate on other users' projects.</li>
+                        <li><strong>Profile:</strong> Edit your profile information including nickname, gender, age, coding experience and bio.</li>
+                        <li><strong>File Upload:</strong> Upload CSV and H5 files for further processing.</li>
+                    </ul>
+                    <p>For more details, please refer to the documentation.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 自定义调试脚本 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log("DOM fully loaded and parsed");
+
+            // 检查 jQuery 是否加载成功
+            if (typeof $ === 'undefined') {
+                console.error("jQuery is not loaded!");
+            } else {
+                console.log("jQuery is loaded successfully.");
+            }
+
+            // 检查 Bootstrap 是否加载成功
+            if (typeof $.fn.modal === 'undefined') {
+                console.error("Bootstrap is not loaded correctly!");
+            } else {
+                console.log("Bootstrap is loaded successfully.");
+            }
+
+            // 检查 Chart.js 是否加载成功
+            if (typeof Chart === 'undefined') {
+                console.error("Chart.js is not loaded correctly!");
+            } else {
+                console.log("Chart.js is loaded successfully.");
+            }
+
+            
+            function checkECharts() {
+            if (typeof echarts !== 'undefined') {
+                console.log('ECharts has been successfully included.');
+            } else {
+                console.log('ECharts is not included or failed to load.');
+            }
+        }
+
+        // 调用 checkECharts 函数
+        checkECharts();
+
+            // 检查 jQuery Cookie 是否加载成功
+            if (typeof $.cookie === 'undefined') {
+                console.error("jQuery Cookie is not loaded correctly!");
+            } else {
+                console.log("jQuery Cookie is loaded successfully.");
+            }
+
+            // 使用事件委托来处理所有带有 data-toggle="modal" 的元素
+            $('body').on('click', '[data-toggle="modal"]', function(e) {
+                e.preventDefault();
+                console.log("Help button clicked:", this);
+                var targetModal = $(this).data('target');
+                console.log("Target modal:", targetModal);
+
+                // 尝试手动显示模态框
+                try {
+                    $(targetModal).modal('show');
+                    console.log("Modal show method called successfully.");
+                } catch (error) {
+                    console.error("Error showing modal:", error);
+                }
+            });
+
+            // 确保模态框的关闭按钮可以正常工作
+            $('[data-dismiss="modal"]').on('click', function() {
+                console.log("Close button clicked");
+                $(this).closest('.modal').modal('hide');
+            });
+        });
+
+
+
+
+        // 获取当前页面的 URL
+        const currentUrl = window.location.href;
+
+        // 获取所有的 nav-link
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        // 遍历每个 nav-link
+        navLinks.forEach(link => {
+            // 获取 nav-link 的 href 属性
+            const href = link.getAttribute('href');
+
+            // 构建完整的 URL
+            const fullUrl = new URL(href, window.location.origin).href;
+            console.log(fullUrl);
+
+            // 检查当前 URL 是否包含 nav-link 的 href
+            if (currentUrl.includes(fullUrl)) {
+                // 获取 nav-link 的父元素 nav-item
+                const navItem = link.parentElement;
+                // 添加 active 类
+                navItem.classList.add('active');
+
+                // 检查 nav-item 是否是子菜单项
+                if (navItem.parentElement.classList.contains('sub-menu')) {
+                    // 获取子菜单项的父元素 nav-item
+                    const parentNavItem = navItem.parentElement.parentElement.parentElement;
+                    console.log('parentNavItem:',parentNavItem);
+                    // 添加 active 类
+                    parentNavItem.classList.add('active');
+                    // 展开子菜单
+                    const collapseId = parentNavItem.querySelector('a').getAttribute('data-bs-toggle') === 'collapse' ? parentNavItem.querySelector('a').getAttribute('href').substring(1) : '';
+                    if (collapseId) {
+                        const collapseElement = document.getElementById(collapseId);
+                        if (collapseElement) {
+                            collapseElement.classList.add('show');
+                        }
+                    }
+                }
+            }
+        });
+
+
+    </script>
+</body>
+</html>

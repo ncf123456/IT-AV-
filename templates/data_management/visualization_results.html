@@ -1,0 +1,117 @@
+{% extends 'users/base.html' %}
+{% block title %}可视化结果 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project_id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">训练仪表盘</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project_id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">数据预测</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">存储管理</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project_id %}">数据管理</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project_id %}">模型管理</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project_id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project_id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project_id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<h1>Visualization Results</h1>
+<p>Here are the results of your data visualizations:</p>
+
+<a href="{% url 'data_training' project_id %}">Back to Data Training</a>
+
+<button type="button" class="btn btn-primary ml-2" onclick="downloadPdf()">下载PDF报告</button>
+
+<div id="visualization-container">
+    {% for image in images %}
+    <img src="/{{ image.path }}" alt="{{ image.name }}" style="width:600px; height:auto; margin-bottom:20px;">
+    {% endfor %}
+</div>
+
+<script>
+function downloadPdf() {
+    console.log("Downloading PDF...");
+    const projectId = "{{ project_id }}";
+    fetch(`/data/download_pdf/${projectId}/`, {
+        method: 'GET'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `training_results_${projectId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+        console.error('Error downloading PDF:', error);
+        alert('发生错误，请检查控制台以获取更多信息。');
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,393 @@
+<!-- templates/data_management/manage_data.html -->
+{% extends 'users/base.html' %}
+{% block title %}数据管理 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<style>
+  .custom-upload-container {
+    margin: 20px 0;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-upload-container:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.upload-area {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.upload-area i {
+    font-size: 48px;
+    margin-bottom: 10px;
+    color: #007bff;
+
+
+    .file-info {
+    text-align: left;
+    margin-top: 10px;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #333;
+    word-break: break-all;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.remove-file-btn {
+    margin-top: 10px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+}  
+</style>>
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Data Management - {{ project.name }}</h4>
+                <button type="button" class="btn btn-success float-right" id="uploadDataButton" data-toggle="modal" data-target="#uploadDataModal" onclick="console.log('Upload Data Button Clicked');">
+                    <i class="mdi mdi-plus-box"></i> Upload Data
+                </button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data_file in data_files %}
+                        <tr>
+                            <td>{{ data_file.filename }}</td>
+                            <td>{{ data_file.size }}</td>
+                            <td>
+                                <a href="{% url 'preview_data' project.id data_file.filename %}" class="btn btn-info btn-sm">Preview</a>
+                                <a href="#" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#sampleDataModal{{ data_file.id }}" onclick="console.log('Sample Data Button Clicked for ID: {{ data_file.id }}');">
+                                    Sample
+                                </a>
+                                <a href="#" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#renameDataModal{{ data_file.id }}" onclick="console.log('Rename Data Button Clicked for ID: {{ data_file.id }}');" data-filename="{{ data_file.filename }}" data-id="{{ data_file.id }}">
+                                    Rename
+                                </a>
+                                <a href="{% url 'download_data' project.id data_file.filename %}" class="btn btn-secondary btn-sm" download>
+                                    Download
+                                </a>
+                                <a href="{% url 'delete_data' project.id data_file.filename %}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        <!-- Modal for sampling -->
+                        <div class="modal fade" id="sampleDataModal{{ data_file.id }}" tabindex="-1" role="dialog" aria-labelledby="sampleDataModalLabel{{ data_file.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="sampleDataModalLabel{{ data_file.id }}">Sample Data</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <form method="post" action="{% url 'sample_data' project.id data_file.filename %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="remove_missing{{ data_file.id }}">Remove Missing Values</label>
+                                                <input type="checkbox" id="remove_missing{{ data_file.id }}" name="remove_missing">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="sample_percent{{ data_file.id }}">Sampling Percentage (%)</label>
+                                                <input type="number" min="1" max="99" step="1" class="form-control" id="sample_percent{{ data_file.id }}" name="sample_percent" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="new_filename{{ data_file.id }}">New Filename</label>
+                                                <input type="text" class="form-control" id="new_filename{{ data_file.id }}" name="new_filename" required>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Modal for renaming -->
+                        <div class="modal fade" id="renameDataModal{{ data_file.id }}" tabindex="-1" role="dialog" aria-labelledby="renameDataModalLabel{{ data_file.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="renameDataModalLabel{{ data_file.id }}">Rename Data</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label for="id_filename{{ data_file.id }}">New Filename</label>
+                                            <input type="text" class="form-control" id="id_filename{{ data_file.id }}" name="filename" value="{{ data_file.filename }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary" data-project-id="{{ project.id }}" data-data-file-id="{{ data_file.id }}" data-old-filename="{{ data_file.filename }}">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center">No data files</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for uploading data -->
+<div class="modal fade" id="uploadDataModal" tabindex="-1" role="dialog" aria-labelledby="uploadDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadDataModalLabel">Upload Data</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'upload_data' project.id %}">
+                {% csrf_token %}
+                <div class="custom-upload-container">
+                <div class="upload-area" onclick="document.getElementById('file').click()">
+                    <i class="mdi mdi-cloud-upload"></i>
+                    <p>Click to upload or drag and drop</p>
+                    <p>CSV files only</p>
+                </div>
+                <input type="file" accept=".csv" class="form-control-file" id="file" name="file" required style="display: none;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+
+
+
+        console.log("DOM fully loaded and parsed");
+
+        // 获取 CSRF 令牌
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // 设置 AJAX 请求头
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+
+        // 检查 jQuery 是否加载成功
+        if (typeof $ === 'undefined') {
+            console.error("jQuery is not loaded!");
+        } else {
+            console.log("jQuery is loaded successfully.");
+        }
+
+        // 检查 Bootstrap 是否加载成功
+        if (typeof $.fn.modal === 'undefined') {
+            console.error("Bootstrap is not loaded correctly!");
+        } else {
+            console.log("Bootstrap is loaded successfully.");
+        }
+
+        // 使用事件委托来处理所有带有 data-toggle="modal" 的元素
+        $('body').on('click', '[data-toggle="modal"]', function(e) {
+            e.preventDefault();
+            console.log("Modal button clicked:", this);
+            var targetModal = $(this).data('target');
+            console.log("Target modal:", targetModal);
+            $(targetModal).modal('show');
+        });
+
+        // 确保模态框的关闭按钮可以正常工作
+        $('[data-dismiss="modal"]').on('click', function() {
+            console.log("Close button clicked");
+            $(this).closest('.modal').modal('hide');
+        });
+
+        // 处理重命名表单提交
+        $('.modal-footer .btn-primary[data-project-id]').on('click', function(e) {
+            e.preventDefault();
+            const projectId = $(this).data('project-id');
+            const oldFilename = $(this).data('old-filename');
+            const filenameInputId = `#id_filename${$(this).data('data-file-id')}`;
+            const newFilename = $(filenameInputId).val();
+
+            if (!newFilename) {
+                alert("The new file name cannot be empty!");
+                return;
+            }
+
+            // 构建正确的 URL 路径
+            const renameUrl = `{% url 'rename_data' project.id '__old_filename__' %}`
+                .replace('__old_filename__', encodeURIComponent(oldFilename));
+
+            $.ajax({
+                url: renameUrl,
+                type: 'POST',
+                data: { filename: newFilename },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert(response.message);
+                        location.reload(); // 刷新页面以更新文件列表
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error renaming file:", xhr.responseText);
+                    alert("An error occurred. Please check the console for more information.");
+                }
+            });
+        });
+    });
+
+
+// 监听文件选择事件
+document.getElementById('file').addEventListener('change', function() {
+    const uploadArea = document.querySelector('.upload-area');
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        const fileSize = (file.size / 1024).toFixed(2); // KB
+        
+        uploadArea.innerHTML = `
+            <i class="mdi mdi-file-document"></i>
+            <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${fileSize} KB</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-file-btn" onclick="clearFile()">Remove</button>
+        `;
+    }
+});
+
+// 清除文件函数
+function clearFile() {
+    document.getElementById('file').value = '';
+    const uploadArea = document.querySelector('.upload-area');
+    uploadArea.innerHTML = `
+        <i class="mdi mdi-cloud-upload"></i>
+        <p>Click to upload or drag and drop</p>
+        <p>CSV files only</p>
+    `;
+}
+
+
+</script>
+{% endblock %}

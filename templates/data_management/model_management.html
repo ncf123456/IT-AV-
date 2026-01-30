@@ -1,0 +1,286 @@
+<!-- templates/data_management/model_management.html -->
+{% extends 'users/base.html' %}
+{% block title %}模型管理 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+
+<style>
+  .custom-upload-container {
+    margin: 20px 0;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-upload-container:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.upload-area {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.upload-area i {
+    font-size: 48px;
+    margin-bottom: 10px;
+    color: #007bff;
+}
+
+.file-info {
+    text-align: left;
+    margin-top: 10px;
+}
+
+.file-name {
+    font-weight: bold;
+    color: #333;
+    word-break: break-all;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.remove-file-btn {
+    margin-top: 10px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+</style>>
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Model Management - {{ project.name }}</h4>
+                <button type="button" class="btn btn-success float-right" data-toggle="modal" data-target="#uploadModelModal">
+                    <i class="mdi mdi-plus-box"></i> Upload Model
+                </button>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model_file in model_files %}
+                        <tr>
+                            <td>{{ model_file.filename }}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#renameModelModal{{ model_file.id }}">Rename</button>
+                                <a href="{% url 'download_model' project.id model_file.filename %}" class="btn btn-secondary btn-sm" download>
+                                    Download
+                                </a>
+                                <a href="{% url 'delete_model' project.id model_file.filename %}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                        <!-- Modal for renaming model -->
+                        <div class="modal fade" id="renameModelModal{{ model_file.id }}" tabindex="-1" role="dialog" aria-labelledby="renameModelModalLabel{{ model_file.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="renameModelModalLabel{{ model_file.id }}">Rename Model</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <form id="renameForm{{ model_file.id }}" method="post" action="{% url 'rename_model' project.id model_file.filename %}">
+                                        {% csrf_token %}
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="filename">New Filename</label>
+                                                <input type="text" class="form-control" id="filename" name="filename" required value="{{ model_file.filename }}">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center">No model files</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for uploading model -->
+<div class="modal fade" id="uploadModelModal" tabindex="-1" role="dialog" aria-labelledby="uploadModelModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModelModalLabel">Upload Model</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- 修改上传模型表单 -->
+            <form method="post" enctype="multipart/form-data" action="{% url 'upload_model' project.id %}">
+                {% csrf_token %}
+                <div class="custom-upload-container">
+                    <div class="upload-area" onclick="document.getElementById('file').click()">
+                        <i class="mdi mdi-cloud-upload"></i>
+                        <p>Click to upload or drag and drop</p>
+                        <p>H5 files only</p>
+                    </div>
+                    <input type="file" accept=".h5" class="form-control-file" id="file" name="file" required style="display: none;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('form[id^="renameForm"]').on('submit', function(event) {
+        event.preventDefault();
+        var formId = $(this).attr('id');
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#renameModelModal' + formId.split('renameForm')[1]).modal('hide');
+                    alert(response.message);
+                    location.reload(); // 刷新页面以更新文件名
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('发生错误: ' + xhr.responseText);
+            }
+        });
+    });
+});
+
+
+// 监听文件选择事件
+document.getElementById('file').addEventListener('change', function() {
+    const uploadArea = document.querySelector('.upload-area');
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        const fileSize = (file.size / 1024).toFixed(2); // KB
+        
+        uploadArea.innerHTML = `
+            <i class="mdi mdi-file-document"></i>
+            <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${fileSize} KB</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-file-btn" onclick="clearFile()">Remove</button>
+        `;
+    }
+});
+
+// 清除文件函数
+function clearFile() {
+    document.getElementById('file').value = '';
+    const uploadArea = document.querySelector('.upload-area');
+    uploadArea.innerHTML = `
+        <i class="mdi mdi-cloud-upload"></i>
+        <p>Click to upload or drag and drop</p>
+        <p>H5 files only</p>
+    `;
+}
+
+</script>
+{% endblock %}
+
+
+

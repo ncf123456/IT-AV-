@@ -1,0 +1,23 @@
+<!-- templates/users/create_project.html -->
+{% extends 'users/base.html' %}
+{% block title %}创建项目{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">创建项目</h4>
+                <form method="post" action="{% url 'create_project' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="name">项目名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">创建</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

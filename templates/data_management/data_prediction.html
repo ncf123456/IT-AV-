@@ -1,0 +1,341 @@
+<!-- templates/data_management/data_prediction.html -->
+{% extends 'users/base.html' %}
+{% block title %}数据预测 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Data Prediction - {{ project.name }}</h4>
+                <!-- Hidden input to store project_id -->
+                <input type="hidden" id="projectIdInput" value="{{ project.id }}">
+                
+                <form method="post" id="predictionForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="dataFileSelect">Select Prediction File</label>
+                        <select class="form-control" id="dataFileSelect" name="data_file">
+                            <option value="">Please select a file</option>
+                            {% for data_file in data_files %}
+                            <option value="{{ data_file.filename }}">{{ data_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trainDataFileSelect">Select the file used for training the model (for standardization)</label>
+                        <select class="form-control" id="trainDataFileSelect" name="train_data_file">
+                            <option value="">Please select a file</option>
+                            {% for data_file in data_files %}
+                            <option value="{{ data_file.filename }}">{{ data_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelFileSelect">Select Model File</label>
+                        <select class="form-control" id="modelFileSelect" name="model_file">
+                            <option value="">Please select a model file</option>
+                            {% for model_file in model_files %}
+                            <option value="{{ model_file.filename }}">{{ model_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="methodSelect">Select Prediction Method</label>
+                        <select class="form-control" id="methodSelect" name="method" onchange="updateMethod()">
+                            <option value="spatio_temporal">Spatio-Temporal Multi-Attention Network</option>
+                            <option value="traditional">Traditional CNN+LSTM+Attention</option>
+                        </select>
+                    </div>
+                    <div id="featureColumns" style="display:none;">
+                        <h5>Feature Column Selection</h5>
+                        <!-- Feature columns will be dynamically added here -->
+                    </div>
+                    <br>
+                    <button type="button" class="btn btn-primary" id="predictButton" disabled onclick="startPrediction()">Predict</button>
+                    <button type="button" class="btn btn-success" id="saveResultButton" disabled onclick="showSaveDialog()">Save Result</button>
+                </form>
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+document.getElementById('dataFileSelect').addEventListener('change', function() {
+    const selectedFile = this.value;
+    if (selectedFile) {
+        const projectId = getProjectId();
+        fetch(`/data/get_columns/${projectId}/${encodeURIComponent(selectedFile)}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                populateFeatureColumns(data.columns);
+                document.getElementById('predictButton').disabled = false; // Enable predict button after successful fetch
+                clearErrorMessage(); // Clear any previous error messages
+            })
+            .catch(error => {
+                console.error('Error fetching columns:', error);
+                showErrorMessage('Unable to retrieve column information, please check the console for more information.');
+                document.getElementById('predictButton').disabled = true; // Disable predict button on failure
+                hideAllFeatureSections(); // Hide all feature sections on failure
+            });
+    } else {
+        hideAllFeatureSections();
+        document.getElementById('predictButton').disabled = true; // Disable predict button when no file is selected
+        clearErrorMessage(); // Clear any previous error messages
+    }
+});
+
+function updateMethod() {
+    const method = document.getElementById('methodSelect').value;
+    const featureSelectElements = document.querySelectorAll('#featureColumns select[name^="features["]');
+
+    featureSelectElements.forEach(selectElement => {
+        Array.from(selectElement.options).forEach(option => {
+            if (method === 'traditional') {
+                // Only keep "other_feature", "standard_date_feature", and "target_variable"
+                if (['other_feature', 'standard_date_feature', 'target_variable'].includes(option.value)) {
+                    option.disabled = false;
+                    option.hidden = false;
+                } else {
+                    option.disabled = true;
+                    option.hidden = true;
+                }
+            } else {
+                // Enable all options for spatio_temporal
+                option.disabled = false;
+                option.hidden = false;
+            }
+        });
+
+        // Reset the selected value to a valid option if it's currently disabled or hidden
+        if (selectElement.selectedOptions[0].disabled || selectElement.selectedOptions[0].hidden) {
+            let firstEnabledOption = Array.from(selectElement.options).find(option => !option.disabled && !option.hidden);
+            if (firstEnabledOption) {
+                selectElement.value = firstEnabledOption.value;
+            }
+        }
+    });
+}
+
+function populateFeatureColumns(columns) {
+    const featureColumnsDiv = document.getElementById('featureColumns');
+    featureColumnsDiv.innerHTML = '<h5>Feature Column Selection</h5>';
+    columns.forEach(column => {
+        featureColumnsDiv.innerHTML += `
+            <div class="form-group row">
+                <label for="${column}" class="col-sm-3 col-form-label">${column}</label>
+                <div class="col-sm-9">
+                    <select class="form-control" id="${column}" name="features[${column}]">
+                        <option value="other_feature">Other Feature</option>
+                        <option value="time_feature">Time Feature</option>
+                        <option value="standard_date_feature">Standard Date Feature</option>
+                        <option value="geographic_feature">Geographic Feature</option>
+                        <option value="target_variable">Target Variable</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    });
+    featureColumnsDiv.style.display = '';
+}
+
+function hideAllFeatureSections() {
+    document.getElementById('featureColumns').style.display = 'none';
+}
+
+function startPrediction() {
+    console.log("Starting prediction...");
+    const projectId = getProjectId();
+    const formData = new FormData(document.getElementById('predictionForm'));
+
+    // Log the form data to the console
+    for (var pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+
+    fetch(`/data/data_prediction/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData,
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            alert(data.message);
+            document.getElementById('saveResultButton').disabled = false; // Enable save result button after successful prediction
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting prediction:', error);
+        alert('An error occurred, please check the console for more information.');
+    });
+}
+
+function showSaveDialog() {
+    const resultName = prompt("Please enter the prediction result name:");
+    if (resultName) {
+        saveResult(resultName);
+    }
+}
+
+function saveResult(resultName) {
+    if (!resultName) {
+        alert('Please enter the prediction result name');
+        return;
+    }
+
+    const projectId = getProjectId();
+    const formData = new FormData();
+    formData.append('resultName', resultName);
+
+    fetch(`/data/save_prediction_result/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData,
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving prediction result:', error);
+        alert('An error occurred, please check the console for more information.');
+    });
+}
+
+function clearErrorMessage() {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.style.display = 'none';
+    errorMessageDiv.textContent = '';
+}
+
+function showErrorMessage(message) {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.style.display = 'block';
+    errorMessageDiv.textContent = message;
+}
+
+function getProjectId() {
+    return document.getElementById('projectIdInput').value;
+}
+</script>
+
+{% endblock %}

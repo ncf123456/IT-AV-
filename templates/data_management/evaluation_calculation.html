@@ -1,0 +1,610 @@
+{% extends 'users/base.html' %}
+{% block title %}评估计算 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">评估计算 - {{ project.name }}</h4>
+                <!-- Hidden input to store project_id -->
+                <input type="hidden" id="projectIdInput" value="{{ project.id }}">
+                
+                <form method="post" id="evaluationForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="dataFileSelect">选择训练文件</label>
+                        <select class="form-control" id="dataFileSelect" name="data_file">
+                            <option value="">请选择一个文件</option>
+                            {% for data_file in data_files %}
+                            <option value="{{ data_file.filename }}">{{ data_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="methodSelect">选择训练方法</label>
+                        <select class="form-control" id="methodSelect" name="method" onchange="updateMethod()">
+                            <option value="spatio_temporal">时空多注意力网络</option>
+                            <option value="traditional">传统CNN+LSTM+Attention</option>
+                        </select>
+                    </div>
+                    <div id="featureColumns" style="display:none;">
+                        <h5>特征列选择</h5>
+                        <!-- Feature columns will be dynamically added here -->
+                    </div>
+                    <div class="form-group">
+                        <label for="testSizeRatio">训练集和测试集比例</label>
+                        <input type="number" step="0.01" min="0.01" max="0.99" class="form-control" id="testSizeRatio" name="test_size_ratio" value="0.2">
+                    </div>
+                    <div id="parameters_spatio_temporal" style="display:block;">
+                        <h5>参数选择 (时空多注意力网络)</h5>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <label for="st_lstm_units">LSTM Units</label>
+                                <input type="text" class="form-control" id="st_lstm_units" name="st_lstm_units" value="30">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_dense_units">Dense Units</label>
+                                <input type="text" class="form-control" id="st_dense_units" name="st_dense_units" value="50">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_filters">Filters</label>
+                                <input type="text" class="form-control" id="st_filters" name="st_filters" value="32">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="st_temporal_kernel_size">Temporal Kernel Size</label>
+                                <input type="text" class="form-control" id="st_temporal_kernel_size" name="st_temporal_kernel_size" value="2">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_spatial_kernel_sizes">Spatial Kernel Sizes</label>
+                                <input type="text" class="form-control" id="st_spatial_kernel_sizes" name="st_spatial_kernel_sizes" value="[[3, 3], [4, 4]]">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_dynamic_attention_units">Dynamic Attention Units</label>
+                                <input type="text" class="form-control" id="st_dynamic_attention_units" name="st_dynamic_attention_units" value="25">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="st_epochs">Epochs</label>
+                                <input type="text" class="form-control" id="st_epochs" name="st_epochs" value="5">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="st_batch_size">Batch Size</label>
+                                <input type="text" class="form-control" id="st_batch_size" name="st_batch_size" value="32,64">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="parameters_traditional" style="display:none;">
+                        <h5>参数选择 (传统CNN+LSTM+Attention)</h5>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <label for="t_filters">Filters</label>
+                                <input type="text" class="form-control" id="t_filters" name="t_filters" value="32">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_kernel_size">Kernel Size</label>
+                                <input type="text" class="form-control" id="t_kernel_size" name="t_kernel_size" value="2">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_lstm_units">LSTM Units</label>
+                                <input type="text" class="form-control" id="t_lstm_units" name="t_lstm_units" value="30">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="t_dense_units">Dense Units</label>
+                                <input type="text" class="form-control" id="t_dense_units" name="t_dense_units" value="50">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_dynamic_attention_units">Dynamic Attention Units</label>
+                                <input type="text" class="form-control" id="t_dynamic_attention_units" name="t_dynamic_attention_units" value="25">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-sm-4">
+                                <label for="t_epochs">Epochs</label>
+                                <input type="text" class="form-control" id="t_epochs" name="t_epochs" value="5">
+                            </div>
+                            <div class="col-sm-4">
+                                <label for="t_batch_size">Batch Size</label>
+                                <input type="text" class="form-control" id="t_batch_size" name="t_batch_size" value="32,64">
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div id="weightSelection"   >
+                        <h5>权重选择</h5>
+                        <div class="form-group">
+                            <label for="w1">RMSE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w1" name="w1" value="0.25">
+                        </div>
+                        <div class="form-group">
+                            <label for="w2">MAE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w2" name="w2" value="0.25">
+                        </div>
+                        <div class="form-group">
+                            <label for="w3">1-NSE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w3" name="w3" value="0.5">
+                        </div>
+                        
+                    </div>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="trainingProgress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="evaluateButton" disabled onclick="startEvaluation()">开始评估</button>
+                    <button type="button" class="btn btn-success ml-2" id="saveResultButton" disabled onclick="showSaveDialog()">保存结果</button>
+                    
+                </form>
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display:none;"></div>
+                <!-- 添加 chartContainer 元素 -->
+                <div id="chartContainer" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script>
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+document.addEventListener('DOMContentLoaded', () => {
+    const projectId = getProjectId(); // Ensure this function returns the correct project ID
+});
+
+function startEvaluation() {
+    console.log("Starting evaluation...");
+    const progressBar = document.getElementById('trainingProgress');
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+
+    const formData = new FormData(document.getElementById('evaluationForm'));
+    const projectId = getProjectId();
+
+    fetch(`/data/evaluation_calculation/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            document.getElementById('saveResultButton').disabled = false;
+            console.log("Evaluation completed.");
+            // Fetch the calculate_result.csv and render the chart
+            fetch(`/media/${projectId}/calculate_result.csv`)
+                .then(response => response.text())
+                .then(data => {
+                    const csvData = Papa.parse(data, { header: true }).data;
+                    renderChart(csvData);
+                })
+                .catch(error => {
+                    console.error('Error fetching calculate_result.csv:', error);
+                    alert('发生错误，请检查控制台以获取更多信息。');
+                });
+            // renderChart(data);
+        } else {
+            showErrorMessage(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting evaluation:', error);
+        showErrorMessage('发生错误，请检查控制台以获取更多信息。');
+    });
+
+    // Connect to WebSocket
+    const socket = new WebSocket(`ws://${window.location.host}/ws/evaluation_progress/${projectId}/`);
+
+    socket.onopen = function(event) {
+        console.log("Connected to WebSocket");
+    };
+
+    let trainingInterval; // Define trainingInterval here
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const progress = data.progress;
+        const progressBar = document.getElementById('trainingProgress');
+        if (progressBar) {
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = progress + '%';
+        }
+        if (progress >= 100) {
+            clearInterval(trainingInterval); // Clear interval when progress is 100%
+            document.getElementById('saveResultButton').disabled = false;
+            console.log("Evaluation completed.");
+        }
+    };
+
+    socket.onclose = function(event) {
+        console.log("Disconnected from WebSocket");
+        clearInterval(trainingInterval); // Clear interval on socket close
+    };
+}
+
+
+
+
+document.getElementById('dataFileSelect').addEventListener('change', function() {
+    const selectedFile = this.value;
+    if (selectedFile) {
+        const projectId = getProjectId();
+        fetch(`/data/get_columns/${projectId}/${encodeURIComponent(selectedFile)}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                populateFeatureColumns(data.columns);
+                document.getElementById('evaluateButton').disabled = false; // Enable evaluate button after successful fetch
+                
+                clearErrorMessage(); // Clear any previous error messages
+            })
+            .catch(error => {
+                console.error('Error fetching columns:', error);
+                showErrorMessage('无法获取列信息，请检查控制台以获取更多信息。');
+                document.getElementById('evaluateButton').disabled = true; // Disable evaluate button on failure
+                
+                hideAllFeatureSections(); // Hide all feature sections on failure
+            });
+    } else {
+        hideAllFeatureSections();
+        document.getElementById('evaluateButton').disabled = true; // Disable evaluate button when no file is selected
+        
+        clearErrorMessage(); // Clear any previous error messages
+    }
+});
+
+function updateMethod() {
+    const method = document.getElementById('methodSelect').value;
+    if (method === 'spatio_temporal') {
+        document.getElementById('parameters_spatio_temporal').style.display = 'block';
+        document.getElementById('parameters_traditional').style.display = 'none';
+    } else if (method === 'traditional') {
+        document.getElementById('parameters_spatio_temporal').style.display = 'none';
+        document.getElementById('parameters_traditional').style.display = 'block';
+    }
+
+    // Adjust feature selection options based on the method
+    const featureSelectElements = document.querySelectorAll('#featureColumns select[name^="features["]');
+    featureSelectElements.forEach(selectElement => {
+        if (method === 'traditional') {
+            // Only keep "other_feature", "standard_date_feature", and "target_variable"
+            Array.from(selectElement.options).forEach(option => {
+                if (!['other_feature', 'standard_date_feature', 'target_variable'].includes(option.value)) {
+                    option.disabled = true;
+                    option.hidden = true;
+                } else {
+                    option.disabled = false;
+                    option.hidden = false;
+                }
+            });
+        } else {
+            // Enable all options for spatio_temporal
+            Array.from(selectElement.options).forEach(option => {
+                option.disabled = false;
+                option.hidden = false;
+            });
+        }
+    });
+}
+
+function populateFeatureColumns(columns) {
+    const featureColumnsDiv = document.getElementById('featureColumns');
+    featureColumnsDiv.innerHTML = '<h5>特征列选择</h5>';
+    columns.forEach(column => {
+        featureColumnsDiv.innerHTML += `
+            <div class="form-group row">
+                <label for="${column}" class="col-sm-3 col-form-label">${column}</label>
+                <div class="col-sm-9">
+                    <select class="form-control" id="features_${column}" name="features[${column}]">
+                        <option value="other_feature">其他特征</option>
+                        <option value="time_feature">时间特征</option>
+                        <option value="standard_date_feature">标准日期特征</option>
+                        <option value="geographic_feature">地理特征</option>
+                        <option value="target_variable">目标变量</option>
+                    </select>
+                </div>
+            </div>
+        `;
+    });
+    featureColumnsDiv.style.display = '';
+}
+
+function hideAllFeatureSections() {
+    document.getElementById('featureColumns').style.display = 'none';
+}
+
+function showSaveDialog() {
+    const modelName = prompt("请输入结果名称:");
+    if (modelName) {
+        saveResult(modelName);
+    }
+}
+
+function saveResult(modelName) {
+    if (!modelName) {
+        alert('请输入结果名称');
+        return;
+    }
+
+    const projectId = getProjectId();
+    const formData = new FormData();
+    formData.append('modelName', modelName);
+
+    fetch(`/data/save_evaluation_result/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData,
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving evaluation result:', error);
+        alert('发生错误，请检查控制台以获取更多信息。');
+    });
+}
+
+
+function renderChart(data) {
+    console.log("Data received for rendering chart:", data); // Debugging: Log the data received
+
+    // Filter out invalid data entries
+    const filteredData = data.filter(item => item.lstm_units !== '' && item.filters !== '');
+
+    const chartContainer = document.getElementById('chartContainer');
+    const myChart = echarts.init(chartContainer);
+
+    const seriesDataPrimary = [];
+    const seriesDataSecondary = [];
+    const legendDataPrimary = [];
+    const legendDataSecondary = [];
+    const xAxisData = [];
+
+    // Define color groups for primary and secondary series
+    const primaryColors = ['#fc8452','#5470c6','#91cc75',  '#F08650', '#00129A','#3ba272'];
+    const secondaryColors = ['#FF6384', '#36A2EB', '#FFCE56']; // Only 3 colors for secondary series
+
+    filteredData.forEach((item, index) => {
+        xAxisData.push(`Model ${index + 1}`);
+        for (const key in item) {
+            if (!['lstm_units', 'dense_units', 'filters', 'kernel_size', 'temporal_kernel_size', 'spatial_kernel_sizes', 'dynamic_attention_units', 'epochs', 'batch_size', 'aic', 'bic'].includes(key)) {
+                const value = parseFloat(item[key]).toFixed(3);
+                if (value >= 0 && value <= 1) {
+                    if (!legendDataSecondary.includes(key)) {
+                        legendDataSecondary.push(key);
+                        seriesDataSecondary.push({
+                            name: key,
+                            type: 'bar',
+                            yAxisIndex: 1, // Use the secondary y-axis
+                            data: [],
+                            itemStyle: {
+                                color: secondaryColors[legendDataSecondary.length % secondaryColors.length]
+                            }
+                        });
+                    }
+                    const seriesIndex = legendDataSecondary.indexOf(key);
+                    seriesDataSecondary[seriesIndex].data.push(value);
+                } else {
+                    if (!legendDataPrimary.includes(key)) {
+                        legendDataPrimary.push(key);
+                        seriesDataPrimary.push({
+                            name: key,
+                            type: 'bar',
+                            data: [],
+                            itemStyle: {
+                                color: primaryColors[(legendDataPrimary.length ) % 3 + 2]
+                            }
+                        });
+                    }
+                    const seriesIndex = legendDataPrimary.indexOf(key);
+                    seriesDataPrimary[seriesIndex].data.push(value);
+                }
+            }
+        }
+    });
+
+    // 修改部分：为 training_time 设置独立颜色
+    seriesDataPrimary.forEach(series => {
+        if (series.name === 'training_time') {
+            series.itemStyle.color = '#EA3FF7';
+        }
+    });
+
+    console.log("Series Data:", seriesDataPrimary, seriesDataSecondary);
+
+    const option = {
+        legend: {
+            data: [...legendDataPrimary, ...legendDataSecondary]
+        },
+        tooltip: {
+            trigger: 'item',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: function (params) {
+                const modelIndex = params.dataIndex;
+                const modelData = filteredData[modelIndex];
+                let tooltipContent = `<strong>${params.seriesName}</strong>: ${params.value}<br/>`;
+                tooltipContent += `<strong>Model ${modelIndex + 1}</strong><br/>`;
+
+                // Add additional parameters with smaller and lighter text
+                const additionalParams = ['lstm_units', 'dense_units', 'filters', 'kernel_size', 'temporal_kernel_size', 'spatial_kernel_sizes', 'dynamic_attention_units', 'epochs', 'batch_size'];
+                additionalParams.forEach(param => {
+                    if (modelData[param] !== undefined) {
+                        tooltipContent += `<span style="font-size: 12px; color: #888;">${param}: ${modelData[param]}</span><br/>`;
+                    }
+                });
+
+                return tooltipContent;
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: xAxisData
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: '数值',
+                position: 'left',
+                axisLine: {
+                    show: true
+                },
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            },
+            {
+                type: 'value',
+                name: '0-1范围',
+                position: 'right',
+                offset: 80,
+                axisLine: {
+                    show: true
+                },
+                axisLabel: {
+                    formatter: '{value}'
+                }
+            }
+        ],
+        series: [...seriesDataPrimary, ...seriesDataSecondary]
+    };
+
+    console.log("Chart Option:", option); // Debugging: Log the chart option
+
+    myChart.setOption(option);
+}
+
+function showErrorMessage(message) {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = message;
+    errorMessageDiv.style.display = 'block';
+}
+
+function clearErrorMessage() {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = '';
+    errorMessageDiv.style.display = 'none';
+}
+
+function getProjectId() {
+    return document.getElementById('projectIdInput').value;
+}
+</script>
+{% endblock %}

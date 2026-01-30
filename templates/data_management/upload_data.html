@@ -1,0 +1,24 @@
+{% extends 'users/base.html' %}
+
+{% block title %}上传数据{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Upload Data</h4>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="fileInput">Select File:</label>
+                        <input type="file" class="form-control-file" id="fileInput" name="file" accept=".csv,.h5">
+                        <small id="selectedFileName" class="form-text text-muted">No file selected</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="upload-data-btn">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

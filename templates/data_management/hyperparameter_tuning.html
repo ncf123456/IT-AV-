@@ -1,0 +1,623 @@
+{% extends 'users/base.html' %}
+{% block title %}超参数调优 - {{ project.name }}{% endblock %}
+
+{% block project_nav %}
+<ul class="nav" style="position: fixed;width: 13.5%;">
+    <!-- 主界面 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'home' %}">
+            <i class="mdi mdi-grid-large menu-icon"></i>
+            <span class="menu-title">Main interface</span>
+        </a>
+    </li>
+
+    <!-- 个人项目 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'personal_projects' %}">
+            <i class="mdi mdi-folder-multiple menu-icon"></i>
+            <span class="menu-title">Personal project</span>
+        </a>
+    </li>
+
+    <!-- 项目功能分组 -->
+    <li class="nav-item nav-category" style="font-size: 1.2em; margin-top: 20px;" >Project Functions</li>
+
+    <!-- 训练仪表盘 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+    </li>
+
+    <!-- 数据预测 -->
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'data_prediction' project.id %}">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+    </li>
+
+    <!-- 存储管理分组 -->
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="storage-management">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'manage_data' project.id %}">Data Management</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
+            </ul>
+        </div>
+    </li>
+
+    <!-- 其他训练分组 -->
+    <!-- <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
+            <i class="menu-icon mdi mdi-tools"></i>
+            <span class="menu-title">其他训练</span>
+            <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="other-training">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
+            </ul>
+        </div>
+    </li> -->
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">超参数调优 - {{ project.name }}</h4>
+                <!-- Hidden input to store project_id -->
+                <input type="hidden" id="projectIdInput" value="{{ project.id }}">
+                
+                <form method="post" id="hyperparameterForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="dataFileSelect">选择训练文件</label>
+                        <select class="form-control" id="dataFileSelect" name="data_file">
+                            <option value="">请选择一个文件</option>
+                            {% for data_file in data_files %}
+                            <option value="{{ data_file.filename }}">{{ data_file.filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="methodSelect">选择训练方法</label>
+                        <select class="form-control" id="methodSelect" name="method" onchange="updateMethod()">
+                            <option value="spatio_temporal">时空多注意力网络</option>
+                            <option value="traditional">传统CNN+LSTM+Attention</option>
+                        </select>
+                    </div>
+                    <div id="featureColumns" style="display:none;">
+                        <h5>特征列选择</h5>
+                        <!-- Feature columns will be dynamically added here -->
+                    </div>
+                    <div class="form-group">
+                        <label for="testSizeRatio">训练集和测试集比例</label>
+                        <input type="number" step="0.01" min="0.01" max="0.99" class="form-control" id="testSizeRatio" name="test_size_ratio" value="0.2">
+                    </div>
+                    <div id="weightSelection">
+                        <h5>贝叶斯优化权重选择，根据需求调节权重大小（越重视权重设置越大）</h5>
+                        <div class="form-group">
+                            <label for="w1">RMSE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w1" name="w1" value="0.25">
+                        </div>
+                        <div class="form-group">
+                            <label for="w2">MAE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w2" name="w2" value="0.25">
+                        </div>
+                        <div class="form-group">
+                            <label for="w3">1-NSE 权重</label>
+                            <input type="number" step="0.01" min="0" max="1" class="form-control" id="w3" name="w3" value="0.5">
+                        </div>
+                    </div>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="trainingProgress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <!-- 添加状态信息显示元素 -->
+                    <div id="statusMessage" style="margin-top: 10px; min-height: 30px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; background-color: #f8f9fa; color: #6c757d; font-size: 14px; display: flex; align-items: center; justify-content: center;"></div>
+                    <br>
+                    <button type="button" class="btn btn-primary" id="bayesianOptimizationButton" disabled onclick="$('#bayesianOptimizationModal').modal('show')">开始调优</button>
+                    <button type="button" class="btn btn-danger ml-2" id="stopTuneButton" disabled onclick="stopHyperparameterTuning()">停止调优</button>
+                    <button type="button" class="btn btn-info ml-2" id="showResultButton" disabled onclick="fetchBestResult(getProjectId())">展示结果</button>
+                    <button type="button" class="btn btn-success ml-2" id="saveResultButton" disabled onclick="saveResult()">保存结果</button>
+                </form>
+                <div id="errorMessage" class="alert alert-danger mt-3" style="display:none;"></div>
+                <!-- Adding chartContainer element -->
+                <br>
+                <div id="chartContainer" style="width: 100%; height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bayesianOptimizationModal" tabindex="-1" role="dialog" aria-labelledby="bayesianOptimizationModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bayesianOptimizationModalLabel">贝叶斯优化设置(如果不在意时间，次数越多越好，次数过少可能导致局部最优)</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="bayesianOptimizationCalls">贝叶斯优化次数（10-100）</label>
+                <div class="form-group d-flex align-items-center">
+                    <input type="range" class="form-control-range" id="bayesianOptimizationCalls" name="bayesianOptimizationCalls" min="10" max="100" value="10" style="width: 80%;">
+                    <span class="range-value small-span" id="bayesianOptimizationCallsValue">10</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary"  onclick="startHyperparameterTuning()">开始优化</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script>
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+document.getElementById('bayesianOptimizationButton').addEventListener('click', function() {
+    $('#bayesianOptimizationModal').modal('show');
+});
+
+function startHyperparameterTuning() {
+    console.log("Starting hyperparameter tuning...");
+    const n_calls = parseInt(document.getElementById('bayesianOptimizationCalls').value);
+    $('#bayesianOptimizationModal').modal('hide');
+    const progressBar = document.getElementById('trainingProgress');
+    progressBar.style.width = '0%';
+    progressBar.textContent = '0%';
+
+    const formData = new FormData(document.getElementById('hyperparameterForm'));
+    const projectId = getProjectId();
+
+    formData.append('n_calls', n_calls);
+
+    fetch(`/data/hyperparameter_tuning/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            console.log("Hyperparameter tuning completed.");
+            // 存储最优参数组合和模型文件名
+            window.bestParams = data.best_params;
+            window.bestModelFilename = data.best_model_filename;
+        } else {
+            showErrorMessage(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting hyperparameter tuning:', error);
+        showErrorMessage('发生错误，请检查控制台以获取更多信息。');
+    });
+
+    // Connect to WebSocket
+    const socket = new WebSocket(`ws://${window.location.host}/ws/evaluation_progress/${projectId}/`);
+
+    socket.onopen = function(event) {
+        console.log("Connected to WebSocket");
+    };
+
+    let trainingInterval; // Define trainingInterval here
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log("Received data:", data);
+        const progress = data.progress;
+        const progressBar = document.getElementById('trainingProgress');
+        if (progressBar) {
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = progress + '%';
+        }
+        const statusMessage = document.getElementById('statusMessage');
+        if (statusMessage) {
+            console.log("Received status message:", data.status);
+            statusMessage.textContent = data.status || ''; // 显示状态信息
+            // 启用或禁用停止调优按钮
+            const stopTuneButton = document.getElementById('stopTuneButton');
+            if (data.status === '正在查找最优参数组合（小范围参数组合训练）') {
+                stopTuneButton.disabled = false;
+            } else {
+                stopTuneButton.disabled = true;
+            }
+        }
+        if (progress >= 100) {
+            clearInterval(trainingInterval); // Clear interval when progress is 100%
+            
+            console.log("Hyperparameter tuning completed.");
+        }
+        if (data.status === '正在查找最优参数组合（小范围参数组合训练）' && progress >= 100) {
+            clearInterval(trainingInterval); // Clear interval when progress is 100%
+            document.getElementById('saveResultButton').disabled = false;
+            document.getElementById('showResultButton').disabled = false; // 启用展示结果按钮
+        }
+    };
+
+    socket.onclose = function(event) {
+        console.log("Disconnected from WebSocket");
+        clearInterval(trainingInterval); // Clear interval on socket close
+    };
+}
+
+function stopHyperparameterTuning() {
+    console.log("Stopping hyperparameter tuning...");
+    const projectId = getProjectId();
+
+    fetch(`/data/stop_hyperparameter_tuning/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            alert(data.message);
+            document.getElementById('showResultButton').disabled = false; // 启用展示结果按钮
+            document.getElementById('saveResultButton').disabled = false;
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error stopping hyperparameter tuning:', error);
+        alert('发生错误，请检查控制台以获取更多信息。');
+    });
+}
+
+function fetchBestResult(projectId) {
+    const bestResultPath = `/media/${projectId}/model_${projectId}_best_result.json`;
+    fetch(bestResultPath)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Best result data:", data);
+            displayBestResult(data);
+        })
+        .catch(error => {
+            console.error('Error fetching best result:', error);
+        });
+}
+
+function displayBestResult(data) {
+    const chartContainer = document.getElementById('chartContainer');
+    chartContainer.innerHTML = `
+        <h5>最优参数组合</h5>
+        <p>参数: ${JSON.stringify(data.best_params)}</p>
+        <p>Epochs: ${data.epochs}</p>
+        <p>Batch Size: ${data.batch_size}</p>
+        <p>训练时间: ${data.training_time} 秒</p>
+        <p>评分: ${data.score} (越小越好)</p>
+    `;
+
+
+    // // 展示每个目标变量的评分
+    // data.scores.forEach((score, index) => {
+    //     chartContainer.innerHTML += `<p>${target_columns[index]} 评分: ${score} (越小越好)</p>`;
+    // });
+
+    // 创建一个 div 来容纳 ECharts 图表
+    const chartDiv = document.createElement('div');
+    chartDiv.style.width = '100%';
+    chartDiv.style.height = '400px';
+    chartContainer.appendChild(chartDiv);
+
+    // 初始化 ECharts 实例
+    const myChart = echarts.init(chartDiv);
+
+    // 根据数据的长度决定图表的类型
+    const isSingleTarget = data.rmse.length === 1;
+
+    if (isSingleTarget) {
+        // 单个目标变量的图表配置
+        const option = {
+            title: {
+                text: '性能指标'
+            },
+            tooltip: {},
+            legend: {
+                data: ['RMSE', 'MAE', 'R2', 'Adj R2', 'NSE']
+            },
+            xAxis: {
+                data: ['指标']
+            },
+            yAxis: {},
+            series: [
+                {
+                    name: 'RMSE',
+                    type: 'bar',
+                    data: [data.rmse[0]]
+                },
+                {
+                    name: 'MAE',
+                    type: 'bar',
+                    data: [data.mae[0]]
+                },
+                {
+                    name: 'R2',
+                    type: 'bar',
+                    data: [data.r2[0]]
+                },
+                {
+                    name: 'Adj R2',
+                    type: 'bar',
+                    data: [data.adj_r2[0]]
+                },
+                {
+                    name: 'NSE',
+                    type: 'bar',
+                    data: [data.nse[0]]
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+    } else {
+        // 多个目标变量的图表配置
+        const option = {
+            title: {
+                text: '性能指标'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['RMSE', 'MAE', 'R2', 'Adj R2', 'NSE']
+            },
+            xAxis: {
+                type: 'category',
+                data: data.rmse.map((_, index) => `目标变量 ${index + 1}`)
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name: 'RMSE',
+                    type: 'bar',
+                    data: data.rmse
+                },
+                {
+                    name: 'MAE',
+                    type: 'bar',
+                    data: data.mae
+                },
+                {
+                    name: 'R2',
+                    type: 'bar',
+                    data: data.r2
+                },
+                {
+                    name: 'Adj R2',
+                    type: 'bar',
+                    data: data.adj_r2
+                },
+                {
+                    name: 'NSE',
+                    type: 'bar',
+                    data: data.nse
+                }
+            ]
+        };
+
+        myChart.setOption(option);
+    }
+}
+
+
+function saveResult() {
+    console.log("Saving model...");
+    const projectId = getProjectId();
+    const formData = new FormData(document.getElementById('hyperparameterForm'));
+
+    // 弹出输入框让用户输入模型名称
+    const modelName = prompt("请输入模型名称：");
+    if (modelName) {
+        formData.append('model_name', modelName);
+    } else {
+        alert("模型名称不能为空！");
+        return;
+    }
+
+    fetch(`/data/save_hyperparameter_result/${projectId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData,
+    })
+    .then(response => {
+        console.log("Response received:", response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Data from server:", data);
+        if (data.status === 'success') {
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving model:', error);
+        alert('发生错误，请检查控制台以获取更多信息。');
+    });
+
+    // 启用停止调优按钮
+    document.getElementById('stopTuneButton').disabled = false;
+}
+
+
+document.getElementById('dataFileSelect').addEventListener('change', function() {
+    const selectedFile = this.value;
+    if (selectedFile) {
+        const projectId = getProjectId();
+        fetch(`/data/get_columns/${projectId}/${encodeURIComponent(selectedFile)}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                populateFeatureColumns(data.columns);
+                document.getElementById('bayesianOptimizationButton').disabled = false; // 修改: 替换 tuneButton 为 bayesianOptimizationButton
+                clearErrorMessage(); // Clear any previous error messages
+            })
+            .catch(error => {
+                console.error('Error fetching columns:', error);
+                showErrorMessage('无法获取列信息，请检查控制台以获取更多信息。');
+                document.getElementById('bayesianOptimizationButton').disabled = true; // 修改: 替换 tuneButton 为 bayesianOptimizationButton
+                hideAllFeatureSections(); // Hide all feature sections on failure
+            });
+    } else {
+        hideAllFeatureSections();
+        document.getElementById('bayesianOptimizationButton').disabled = true; // 修改: 替换 tuneButton 为 bayesianOptimizationButton
+        clearErrorMessage(); // Clear any previous error messages
+    }
+});
+
+function updateMethod() {
+    const method = document.getElementById('methodSelect').value;
+
+
+    // Adjust feature selection options based on the method
+    const featureSelectElements = document.querySelectorAll('#featureColumns select[name^="features["]');
+    featureSelectElements.forEach(selectElement => {
+        if (method === 'traditional') {
+            // Only keep "other_feature", "standard_date_feature", and "target_variable"
+            Array.from(selectElement.options).forEach(option => {
+                if (!['other_feature', 'standard_date_feature', 'target_variable'].includes(option.value)) {
+                    option.disabled = true;
+                    option.hidden = true;
+                } else {
+                    option.disabled = false;
+                    option.hidden = false;
+                }
+            });
+        } else {
+            // Enable all options for spatio_temporal
+            Array.from(selectElement.options).forEach(option => {
+                option.disabled = false;
+                option.hidden = false;
+            });
+        }
+    });
+}
+
+function populateFeatureColumns(columns) {
+    const featureColumnsDiv = document.getElementById('featureColumns');
+    if (featureColumnsDiv) { // Check if featureColumnsDiv is not null
+        featureColumnsDiv.innerHTML = '<h5>特征列选择</h5>';
+        columns.forEach(column => {
+            featureColumnsDiv.innerHTML += `
+                <div class="form-group row">
+                    <label for="${column}" class="col-sm-3 col-form-label">${column}</label>
+                    <div class="col-sm-9">
+                        <select class="form-control" id="features_${column}" name="features[${column}]">
+                            <option value="other_feature">其他特征</option>
+                            <option value="time_feature">时间特征</option>
+                            <option value="standard_date_feature">标准日期特征</option>
+                            <option value="geographic_feature">地理特征</option>
+                            <option value="target_variable">目标变量</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        });
+        featureColumnsDiv.style.display = '';
+    } else {
+        console.error('Element with id "featureColumns" not found.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const rangeInputs = document.querySelectorAll('.form-control-range');
+    rangeInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const valueDisplay = document.getElementById(this.id + '_value');
+            valueDisplay.textContent = this.value;
+        });
+    });
+
+    const bayesianOptimizationCallsInput = document.getElementById('bayesianOptimizationCalls');
+    const bayesianOptimizationCallsValueSpan = document.getElementById('bayesianOptimizationCallsValue');
+
+    // 为 bayesianOptimizationCalls 滑块添加 input 事件监听器
+    bayesianOptimizationCallsInput.addEventListener('input', function() {
+        bayesianOptimizationCallsValueSpan.textContent = this.value;
+    });
+});
+
+function hideAllFeatureSections() {
+    document.getElementById('featureColumns').style.display = 'none';
+}
+
+function showErrorMessage(message) {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = message;
+    errorMessageDiv.style.display = 'block';
+}
+
+function clearErrorMessage() {
+    const errorMessageDiv = document.getElementById('errorMessage');
+    errorMessageDiv.textContent = '';
+    errorMessageDiv.style.display = 'none';
+}
+
+function getProjectId() {
+    return document.getElementById('projectIdInput').value;
+}
+</script>
+{% endblock %}
