@@ -417,7 +417,7 @@ function fetchSuggestionsAndShowModal(projectId) {
         })
         .catch(error => {
             console.error('Error fetching suggestions:', error);
-            showErrorMessage('无法获取参数建议，请检查控制台以获取更多信息。');
+            showErrorMessage('');
         });
 }
     

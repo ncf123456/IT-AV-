@@ -25,22 +25,37 @@
 
     <!-- 训练仪表盘 -->
     <li class="nav-item">
+        {% if project %}
         <a class="nav-link" href="{% url 'data_training_dash' project.id %}">
             <i class="fa fa-desktop menu-icon"></i>
             <span class="menu-title">Training Dashboard</span>
         </a>
+        {% else %}
+        <a class="nav-link disabled" href="#" onclick="alert('Please create a project first!'); return false;">
+            <i class="fa fa-desktop menu-icon"></i>
+            <span class="menu-title">Training Dashboard</span>
+        </a>
+        {% endif %}
     </li>
 
     <!-- 数据预测 -->
     <li class="nav-item">
+        {% if project %}
         <a class="nav-link" href="{% url 'data_prediction' project.id %}">
             <i class="mdi mdi-chart-bar menu-icon"></i>
             <span class="menu-title">Data prediction</span>
         </a>
+        {% else %}
+        <a class="nav-link disabled" href="#" onclick="alert('Please create a project first!'); return false;">
+            <i class="mdi mdi-chart-bar menu-icon"></i>
+            <span class="menu-title">Data prediction</span>
+        </a>
+        {% endif %}
     </li>
 
     <!-- 存储管理分组 -->
     <li class="nav-item">
+        {% if project %}
         <a class="nav-link" data-bs-toggle="collapse" href="#storage-management" aria-expanded="false" aria-controls="storage-management">
             <i class="menu-icon mdi mdi-database"></i>
             <span class="menu-title">Storage Management</span>
@@ -52,23 +67,16 @@
                 <li class="nav-item"> <a class="nav-link" href="{% url 'model_management' project.id %}">Model Management</a></li>
             </ul>
         </div>
+        {% else %}
+        <a class="nav-link disabled" href="#" onclick="alert('Please create a project first!'); return false;">
+            <i class="menu-icon mdi mdi-database"></i>
+            <span class="menu-title">Storage Management</span>
+        </a>
+        {% endif %}
     </li>
 
-    <!-- 其他训练分组 -->
-    <!-- <li class="nav-item">
-        <a class="nav-link" data-bs-toggle="collapse" href="#other-training" aria-expanded="false" aria-controls="other-training">
-            <i class="menu-icon mdi mdi-tools"></i>
-            <span class="menu-title">其他训练</span>
-            <i class="menu-arrow"></i>
-        </a>
-        <div class="collapse" id="other-training">
-            <ul class="nav flex-column sub-menu">
-                <li class="nav-item"> <a class="nav-link" href="{% url 'hyperparameter_tuning' project.id %}">超参数调优</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'evaluation_calculation' project.id %}">评估计算</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'data_training' project.id %}">数据训练</a></li>
-            </ul>
-        </div>
-    </li> -->
+    <!-- 其他训练分组 (暂时移除以避免URL解析错误) -->
+    <!-- 如果需要重新启用，请确保添加 {% if project %} 条件判断 -->
 </ul>
 {% endblock %}
 
